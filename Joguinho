@@ -1,0 +1,166 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+
+#define MAX_NOME 20
+#define MAX_FAMILIA 4
+
+typedef struct {
+    char nome[MAX_NOME];
+    int saude;
+    int vivo;
+} Membro;
+
+typedef struct {
+    Membro familia[MAX_FAMILIA];
+    int combustivel;
+    int carroQuebrado;
+    int etapaAtual;
+} Jogo;
+
+const char* etapas[] = {
+    "Xique-Xique",
+    "Barreiras",
+    "Brasília",
+    "Foz do Iguaçu",
+    "Argentina (chegamos, cabra!)"
+};
+
+void inicializarJogo(Jogo *jogo) {
+    printf("=== TRILHA DA FAMÍLIA VALENTE ===\n\n");
+    for(int i = 0; i < MAX_FAMILIA; i++) {
+        printf("Digite o nome do membro %d da família: ", i+1);
+        scanf("%s", jogo->familia[i].nome);
+        jogo->familia[i].saude = 100;
+        jogo->familia[i].vivo = 1;
+    }
+    jogo->combustivel = 100;
+    jogo->carroQuebrado = 0;
+    jogo->etapaAtual = 0;
+    srand(time(NULL));
+}
+
+void status(Jogo *jogo) {
+    printf("\n--- STATUS DA FAMÍLIA ---\n");
+    printf("Local: %s\n", etapas[jogo->etapaAtual]);
+    printf("Combustível: %d\n", jogo->combustivel);
+    printf("Carro quebrado? %s\n", jogo->carroQuebrado ? "SIM" : "NÃO");
+    for(int i = 0; i < MAX_FAMILIA; i++) {
+        printf("%s - Saúde: %d - %s\n", 
+            jogo->familia[i].nome, 
+            jogo->familia[i].saude,
+            jogo->familia[i].vivo ? "VIVO" : "MORREU");
+    }
+    printf("------------------------\n");
+}
+
+void eventoAleatorio(Jogo *jogo) {
+    int evento = rand() % 6;
+    switch(evento) {
+        case 0:
+            printf("\nO calor do sertão tá de matar! Todos perdem 10 de saúde.\n");
+            for(int i = 0; i < MAX_FAMILIA; i++)
+                jogo->familia[i].saude -= 10;
+            break;
+        case 1:
+            printf("\nUm jegue travou a estrada! Perde 15 de combustível.\n");
+            jogo->combustivel -= 15;
+            break;
+        case 2:
+            printf("\nPneu furado! Carro quebrou.\n");
+            jogo->carroQuebrado = 1;
+            break;
+        case 3:
+            printf("\nEncontraram uma vendinha com coxinha! +10 de saúde pra todos.\n");
+            for(int i = 0; i < MAX_FAMILIA; i++)
+                jogo->familia[i].saude += 10;
+            break;
+        case 4:
+            printf("\nChuva de granizo em Goiás! Um membro foi atingido.\n");
+            int vitima = rand() % MAX_FAMILIA;
+            jogo->familia[vitima].saude -= 40;
+            break;
+        case 5:
+            printf("\nPosto BR achado! +20 de combustível.\n");
+            jogo->combustivel += 20;
+            break;
+    }
+
+    // Verifica mortes
+    for(int i = 0; i < MAX_FAMILIA; i++) {
+        if(jogo->familia[i].saude <= 0 && jogo->familia[i].vivo) {
+            printf("\nXiii... %s não aguentou e morreu no caminho.\n", jogo->familia[i].nome);
+            jogo->familia[i].vivo = 0;
+        }
+    }
+}
+
+void consertarCarro(Jogo *jogo) {
+    if(jogo->carroQuebrado) {
+        printf("Seu tio Zé deu um jeito no carro com arame e fé. Carro consertado!\n");
+        jogo->carroQuebrado = 0;
+    }
+}
+
+void proximaEtapa(Jogo *jogo) {
+    if(jogo->carroQuebrado) {
+        printf("O carro tá quebrado! Precisa consertar antes.\n");
+        return;
+    }
+
+    if(jogo->combustivel < 20) {
+        printf("Sem combustível suficiente pra seguir viagem!\n");
+        return;
+    }
+
+    jogo->combustivel -= 20;
+    jogo->etapaAtual++;
+    printf("\n--- Indo para %s ---\n", etapas[jogo->etapaAtual]);
+    eventoAleatorio(jogo);
+}
+
+int todosMortos(Jogo *jogo) {
+    for(int i = 0; i < MAX_FAMILIA; i++)
+        if(jogo->familia[i].vivo) return 0;
+    return 1;
+}
+
+int main() {
+    Jogo jogo;
+    inicializarJogo(&jogo);
+
+    while(jogo.etapaAtual < 4 && !todosMortos(&jogo)) {
+        status(&jogo);
+        printf("\nEscolha uma ação:\n");
+        printf("1 - Continuar viagem\n");
+        printf("2 - Consertar o carro\n");
+        printf("3 - Checar status\n");
+        printf("Digite sua escolha: ");
+
+        int escolha;
+        scanf("%d", &escolha);
+
+        switch(escolha) {
+            case 1:
+                proximaEtapa(&jogo);
+                break;
+            case 2:
+                consertarCarro(&jogo);
+                break;
+            case 3:
+                status(&jogo);
+                break;
+            default:
+                printf("Opção inválida!\n");
+        }
+    }
+
+    if(todosMortos(&jogo)) {
+        printf("\nA família toda se foi no caminho... F triste.\n");
+    } else if(jogo.etapaAtual == 4) {
+        printf("\n🎉 VOCÊS CHEGARAM NA ARGENTINA! Parabéns, família valente! 🎉\n");
+    }
+
+    return 0;
+}
